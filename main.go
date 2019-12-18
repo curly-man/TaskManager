@@ -3,12 +3,13 @@ package main
 import (
 	"TM/api"
 	"TM/api/handlers"
-	"TM/config"
 	"TM/dbcore"
+	"TM/dbclient"
 )
 
 func main(){
-	dbCore := dbcore.CreateTaskDBCore(config.MongoURL, config.MongoDB)
+	dbClient := dbclient.NewDBClient()
+	dbCore := dbcore.CreateTaskDBCore(dbClient)
 	taskHandler := handlers.CreateTaskHandler(dbCore)
 	server := api.CreateServer(":8080", taskHandler)
 	server.Start()

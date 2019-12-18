@@ -31,10 +31,10 @@ func (m *MockTaskDBCore) EXPECT() *MockTaskDBCoreMockRecorder {
 }
 
 // Add mocks base method
-func (m *MockTaskDBCore) Add(task models.Task) (interface{}, error) {
+func (m *MockTaskDBCore) Add(task models.Task) (string, error) {
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Add", task)
-        ret0, _ := ret[0].(interface{})
+        ret0, _ := ret[0].(string)
         ret1, _ := ret[1].(error)
         return ret0, ret1
 }
@@ -46,10 +46,10 @@ func (mr *MockTaskDBCoreMockRecorder) Add(task interface{}) *gomock.Call {
 }
 
 // Delete mocks base method
-func (m *MockTaskDBCore) Delete(taskID bson.ObjectId) (interface{}, error) {
+func (m *MockTaskDBCore) Delete(taskID bson.ObjectId) (int64, error) {
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Delete", taskID)
-        ret0, _ := ret[0].(interface{})
+        ret0, _ := ret[0].(int64)
         ret1, _ := ret[1].(error)
         return ret0, ret1
 }
@@ -61,10 +61,10 @@ func (mr *MockTaskDBCoreMockRecorder) Delete(taskID interface{}) *gomock.Call {
 }
 
 // Change mocks base method
-func (m *MockTaskDBCore) Change(task models.Task) (interface{}, error) {
+func (m *MockTaskDBCore) Change(task models.Task) (int64, error) {
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Change", task)
-        ret0, _ := ret[0].(interface{})
+        ret0, _ := ret[0].(int64)
         ret1, _ := ret[1].(error)
         return ret0, ret1
 }
@@ -73,6 +73,21 @@ func (m *MockTaskDBCore) Change(task models.Task) (interface{}, error) {
 func (mr *MockTaskDBCoreMockRecorder) Change(task interface{}) *gomock.Call {
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Change", reflect.TypeOf((*MockTaskDBCore)(nil).Change), task)
+}
+
+// Complete mocks base method
+func (m *MockTaskDBCore) Complete(ID bson.ObjectId) (int64, error) {
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Complete", ID)
+        ret0, _ := ret[0].(int64)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}
+
+// Complete indicates an expected call of Complete
+func (mr *MockTaskDBCoreMockRecorder) Complete(ID interface{}) *gomock.Call {
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Complete", reflect.TypeOf((*MockTaskDBCore)(nil).Complete), ID)
 }
 
 // Get mocks base method
@@ -90,17 +105,17 @@ func (mr *MockTaskDBCoreMockRecorder) Get(user, iscomplete, isfail interface{}) 
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTaskDBCore)(nil).Get), user, iscomplete, isfail)
 }
 
-// Get_By_ID mocks base method
-func (m *MockTaskDBCore) Get_By_ID(ID string) (string, error) {
+// GetByID mocks base method
+func (m *MockTaskDBCore) GetByID(ID string) (string, error) {
         m.ctrl.T.Helper()
-        ret := m.ctrl.Call(m, "Get_By_ID", ID)
+        ret := m.ctrl.Call(m, "GetByID", ID)
         ret0, _ := ret[0].(string)
         ret1, _ := ret[1].(error)
         return ret0, ret1
 }
 
-// Get_By_ID indicates an expected call of Get_By_ID
-func (mr *MockTaskDBCoreMockRecorder) Get_By_ID(ID interface{}) *gomock.Call {
+// GetByID indicates an expected call of GetByID
+func (mr *MockTaskDBCoreMockRecorder) GetByID(ID interface{}) *gomock.Call {
         mr.mock.ctrl.T.Helper()
-        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get_By_ID", reflect.TypeOf((*MockTaskDBCore)(nil).Get_By_ID), ID)
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockTaskDBCore)(nil).GetByID), ID)
 }

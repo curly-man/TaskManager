@@ -8,10 +8,10 @@ import (
 
 type Server struct{
 	port string
-	taskHandler handlers.Task_Handler
+	taskHandler handlers.TaskHandler
 }
 
-func CreateServer(port string, taskHandler handlers.Task_Handler) *Server{
+func CreateServer(port string, taskHandler handlers.TaskHandler) *Server{
 	return &Server{
 		port: port,
 		taskHandler: taskHandler,
@@ -20,14 +20,16 @@ func CreateServer(port string, taskHandler handlers.Task_Handler) *Server{
 
 func (s *Server) Start(){
 	router := mux.NewRouter()
-	router.HandleFunc("/api/task/create/", s.taskHandler.Create_Task).Methods("POST")
-	router.HandleFunc("/api/task/delete/", s.taskHandler.Delete_Task).Methods("DELETE")
-	router.HandleFunc("/api/task/change/", s.taskHandler.Change_Task).Methods("POST")
-	router.HandleFunc("/api/task/complete/", s.taskHandler.Complete_Task).Methods("PUT")
-	router.HandleFunc("/api/tasks/inbox/", s.taskHandler.Get_Inbox_Tasks).Methods("GET")
-	router.HandleFunc("/api/tasks/complete/", s.taskHandler.Get_Complete_Tasks).Methods("GET")
-	router.HandleFunc("/api/tasks/fail/", s.taskHandler.Get_Fail_Tasks).Methods("GET")
-	router.HandleFunc("/api/tasks/{id}", s.taskHandler.Get_Task_By_ID).Methods("GET")
+	router.HandleFunc("/api/task/", s.taskHandler.CreateTask).Methods("POST")
+	router.HandleFunc("/api/task/", s.taskHandler.ChangeTask).Methods("PUT")
+	router.HandleFunc("/api/task/", s.taskHandler.HandleOptionsRequest).Methods("OPTIONS")
+	router.HandleFunc("/api/task/{id}/", s.taskHandler.HandleOptionsRequest).Methods("OPTIONS")
+	router.HandleFunc("/api/task/{id}/", s.taskHandler.DeleteTask).Methods("DELETE")
+	router.HandleFunc("/api/task/{id}/", s.taskHandler.CompleteTask).Methods("POST")
+	router.HandleFunc("/api/task/{id}/", s.taskHandler.GetTaskByID).Methods("GET")
+	router.HandleFunc("/api/tasks/inbox/", s.taskHandler.GetInboxTasks).Methods("GET")
+	router.HandleFunc("/api/tasks/complete/", s.taskHandler.GetCompleteTasks).Methods("GET")
+	router.HandleFunc("/api/tasks/fail/", s.taskHandler.GetFailTasks).Methods("GET")
 
 	http.ListenAndServe(s.port, router)
 }

@@ -1,16 +1,17 @@
 package handlers
 
 import (
-	"TM/config"
 	"TM/dbcore"
 	"TM/dbcore/db_core_mocks"
 	"TM/models"
+	"TM/dbclient"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"errors"
+	"github.com/gorilla/mux"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -18,7 +19,9 @@ import (
 )
 
 func TestCreateTaskHandler(t *testing.T) {
-	dbCore := dbcore.CreateTaskDBCore(config.MongoURL, config.MongoDB)
+	t.Parallel()
+	dbClient := dbclient.NewDBClient()
+	dbCore := dbcore.CreateTaskDBCore(dbClient)
 	taskH := CreateTaskHandler(dbCore)
 
 	var th = &taskHandler{DB: dbCore}
@@ -27,24 +30,26 @@ func TestCreateTaskHandler(t *testing.T) {
 }
 
 func TestCreateTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
 	task := models.Task{ID: bson.NewObjectId(), Name: "First Task"}
-	dbmock.EXPECT().Add(task).Return(task.ID, nil)
+	dbmock.EXPECT().Add(task).Return(task.ID.Hex(), nil)
 
 	th := CreateTaskHandler(dbmock)
 	body, _ := json.Marshal(task)
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
 	w := httptest.NewRecorder()
-	th.Create_Task(w, r)
+	th.CreateTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusCreated)
 }
 
 func TestCreateTaskBadRequest(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -55,12 +60,13 @@ func TestCreateTaskBadRequest(t *testing.T) {
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
 	w := httptest.NewRecorder()
-	th.Create_Task(w, r)
+	th.CreateTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusBadRequest)
 }
 
 func TestCreateTaskBadGateway(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -73,82 +79,78 @@ func TestCreateTaskBadGateway(t *testing.T) {
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
 	w := httptest.NewRecorder()
-	th.Create_Task(w, r)
+	th.CreateTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusBadGateway)
 }
 
 func TestDeleteTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-	id := bson.NewObjectId()
-	dbmock.EXPECT().Delete(id).Return(id, nil)
+	id := bson.ObjectIdHex("5dee57c62166b12990c90102")
+	dbmock.EXPECT().Delete(id).Return(int64(1), nil)
 
 	th := CreateTaskHandler(dbmock)
-	body, _ := json.Marshal(id)
 
-	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
+	r := httptest.NewRequest("DELETE", "/5dee57c62166b12990c90102", nil)
 	w := httptest.NewRecorder()
-	th.Delete_Task(w, r)
+	vars := map[string]string{
+        "id": "5dee57c62166b12990c90102",
+    }
+
+    r = mux.SetURLVars(r, vars)
+	th.DeleteTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
-func TestDeleteTaskStatusBadRequest(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-
-	th := CreateTaskHandler(dbmock)
-	body := "TEST"
-
-	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
-	w := httptest.NewRecorder()
-	th.Delete_Task(w, r)
-
-	assert.Equal(t, w.Code, http.StatusBadRequest)
-}
-
 func TestDeleteTaskStatusBadGateway(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-	id := bson.NewObjectId()
-	dbmock.EXPECT().Delete(id).Return("", driver.ErrFilterType)
+	id := bson.ObjectIdHex("5dee57c62166b12990c90102")
+	dbmock.EXPECT().Delete(id).Return(int64(0), driver.ErrFilterType)
 
 	th := CreateTaskHandler(dbmock)
-	body, _ := json.Marshal(id)
 
-	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
+	r := httptest.NewRequest("DELETE", "/5dee57c62166b12990c90102", nil)
 	w := httptest.NewRecorder()
-	th.Delete_Task(w, r)
+	vars := map[string]string{
+        "id": "5dee57c62166b12990c90102",
+    }
+
+    r = mux.SetURLVars(r, vars)
+	th.DeleteTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusBadGateway)
 }
 
 func TestChangeTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
 	task := models.Task{ID: bson.NewObjectId(), Name: "First Task"}
-	dbmock.EXPECT().Change(task).Return(task.ID, nil)
+	dbmock.EXPECT().Change(task).Return(int64(1), nil)
 
 	th := CreateTaskHandler(dbmock)
 	body, _ := json.Marshal(task)
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
 	w := httptest.NewRecorder()
-	th.Change_Task(w, r)
+	th.ChangeTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
 func TestChangeTaskStatusBadRequest(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -159,82 +161,78 @@ func TestChangeTaskStatusBadRequest(t *testing.T) {
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
 	w := httptest.NewRecorder()
-	th.Change_Task(w, r)
+	th.ChangeTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusBadRequest)
 }
 
 func TestChangeTaskStatusBadGateway(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
 	task := models.Task{ID: bson.NewObjectId(), Name: "First Task"}
-	dbmock.EXPECT().Change(task).Return("", driver.ErrFilterType)
+	dbmock.EXPECT().Change(task).Return(int64(0), driver.ErrFilterType)
 
 	th := CreateTaskHandler(dbmock)
 	body, _ := json.Marshal(task)
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
 	w := httptest.NewRecorder()
-	th.Change_Task(w, r)
+	th.ChangeTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusBadGateway)
 }
 
 func TestCompleteTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-	task := models.Task{ID: bson.NewObjectId(), Name: "First Task", IsComplete: true}
-	dbmock.EXPECT().Change(task).Return(task.ID, nil)
+	id := bson.ObjectIdHex("5dee57c62166b12990c90102")
+	dbmock.EXPECT().Complete(id).Return(int64(1), nil)
 
 	th := CreateTaskHandler(dbmock)
-	body, _ := json.Marshal(task)
 
-	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
+	r := httptest.NewRequest("PUT", "/", nil)
 	w := httptest.NewRecorder()
-	th.Complete_Task(w, r)
+	vars := map[string]string{
+        "id": "5dee57c62166b12990c90102",
+    }
+
+    r = mux.SetURLVars(r, vars)
+	th.CompleteTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
-func TestCompleteTaskStatusBadRequest(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-
-	th := CreateTaskHandler(dbmock)
-	body := "TEST"
-
-	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
-	w := httptest.NewRecorder()
-	th.Complete_Task(w, r)
-
-	assert.Equal(t, w.Code, http.StatusBadRequest)
-}
-
 func TestCompleteTaskStatusBadGateway(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-	task := models.Task{ID: bson.NewObjectId(), Name: "First Task", IsComplete: true}
-	dbmock.EXPECT().Change(task).Return("", driver.ErrFilterType)
+	id := bson.ObjectIdHex("5dee57c62166b12990c90102")
+	dbmock.EXPECT().Complete(id).Return(int64(0), driver.ErrFilterType)
 
 	th := CreateTaskHandler(dbmock)
-	body, _ := json.Marshal(task)
 
-	r := httptest.NewRequest("POST", "/", strings.NewReader(string(body)))
+	r := httptest.NewRequest("POST", "/", nil)
 	w := httptest.NewRecorder()
-	th.Complete_Task(w, r)
+	vars := map[string]string{
+        "id": "5dee57c62166b12990c90102",
+    }
+
+    r = mux.SetURLVars(r, vars)
+	th.CompleteTask(w, r)
 
 	assert.Equal(t, w.Code, http.StatusBadGateway)
 }
 
 func TestGetInboxTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -246,12 +244,13 @@ func TestGetInboxTaskStatusOk(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	th.Get_Inbox_Tasks(w, r)
+	th.GetInboxTasks(w, r)
 
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
 func TestGetInboxTaskStatusNotFound(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -263,12 +262,13 @@ func TestGetInboxTaskStatusNotFound(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	th.Get_Inbox_Tasks(w, r)
+	th.GetInboxTasks(w, r)
 
 	assert.Equal(t, w.Code, http.StatusNotFound)
 }
 
 func TestGetCompleteTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -280,12 +280,13 @@ func TestGetCompleteTaskStatusOk(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	th.Get_Complete_Tasks(w, r)
+	th.GetCompleteTasks(w, r)
 
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
 func TestGetCompleteTaskStatusNotFound(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -297,12 +298,13 @@ func TestGetCompleteTaskStatusNotFound(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	th.Get_Complete_Tasks(w, r)
+	th.GetCompleteTasks(w, r)
 
 	assert.Equal(t, w.Code, http.StatusNotFound)
 }
 
 func TestGetFailTaskStatusOk(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -314,12 +316,13 @@ func TestGetFailTaskStatusOk(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	th.Get_Fail_Tasks(w, r)
+	th.GetFailTasks(w, r)
 
 	assert.Equal(t, w.Code, http.StatusOK)
 }
 
 func TestGetFailTaskStatusNotFound(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -331,24 +334,53 @@ func TestGetFailTaskStatusNotFound(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	th.Get_Fail_Tasks(w, r)
+	th.GetFailTasks(w, r)
 
 	assert.Equal(t, w.Code, http.StatusNotFound)
 }
 
-// func TestGetTaskByIDStatusOk(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
+func TestGetTaskByIDStatusOk(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-// 	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
-// 	ID := "5de56b8e2166b11f9ca7b333"
-// 	dbmock.EXPECT().Get_By_ID(ID).Return("null", nil)
+	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
+	id := "5dee57c62166b12990c90102"
+	dbmock.EXPECT().GetByID(id).Return("null", nil)
 
-// 	th := CreateTaskHandler(dbmock)
+	th := CreateTaskHandler(dbmock)
 
-// 	r := httptest.NewRequest("GET", "http://127.0.0.1:80/api/tasks/5de56b8e2166b11f9ca7b333", strings.NewReader(""))
-// 	w := httptest.NewRecorder()
-// 	th.Get_Task_By_ID(w, r)
+	r := httptest.NewRequest("GET", "/5de56b8e2166b11f9ca7b333", nil)
+	w := httptest.NewRecorder()
+	vars := map[string]string{
+        "id": "5dee57c62166b12990c90102",
+    }
 
-// 	assert.Equal(t, w.Code, http.StatusOK)
-// }
+    r = mux.SetURLVars(r, vars)
+	th.GetTaskByID(w, r)
+
+	assert.Equal(t, w.Code, http.StatusOK)
+}
+
+func TestGetTaskByIDStatusNotFound(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	dbmock := db_core_mocks.NewMockTaskDBCore(ctrl)
+	id := "5dee57c62166b12990c90102"
+	dbmock.EXPECT().GetByID(id).Return("", driver.ErrFilterType)
+
+	th := CreateTaskHandler(dbmock)
+
+	r := httptest.NewRequest("GET", "/5de56b8e2166b11f9ca7b333", nil)
+	w := httptest.NewRecorder()
+	vars := map[string]string{
+        "id": "5dee57c62166b12990c90102",
+    }
+
+    r = mux.SetURLVars(r, vars)
+	th.GetTaskByID(w, r)
+
+	assert.Equal(t, w.Code, http.StatusNotFound)
+}

@@ -8,6 +8,7 @@ type Task struct {
 	ID         bson.ObjectId `bson:"_id" json:"_id,omitempty"`
 	Name       string
 	Priority   int
+	Deadline   bool
 	Timing     int64
 	Subtask    []Task
 	User       User
